@@ -22,6 +22,9 @@ def webhook():
     resp = MessagingResponse()
     resp.message(reply)
     return str(resp)
+@app.route("/")
+def home():
+    return "Mnemo bot is running!"
 
 if __name__ == "__main__":
     app.run(debug=True)
