@@ -1,28 +1,46 @@
 import os
+import requests
 import anthropic
-from telegram import Update
-from telegram.ext import ApplicationBuilder, MessageHandler, filters, ContextTypes
 
 TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN')
-client = anthropic.Anthropic()
+ANTHROPIC_KEY = os.environ.get('ANTHROPIC_API_KEY')
+BASE_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    incoming_msg = update.message.text
-    
+client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+
+def get_updates(offset=None):
+    url = f"{BASE_URL}/getUpdates"
+    params = {"timeout": 30, "offset": offset}
+    r = requests.get(url, params=params)
+    return r.json()
+
+def send_message(chat_id, text):
+    url = f"{BASE_URL}/sendMessage"
+    requests.post(url, json={"chat_id": chat_id, "text": text})
+
+def ask_mnemo(text):
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
         max_tokens=1024,
-        system="""Tu es Mnemo, un assistant de mémoire personnelle bienveillant. 
-        Ton rôle est d'aider l'utilisateur à capturer, organiser et retrouver ses pensées et idées.
-        Réponds toujours en français de manière concise et encourageante.""",
-        messages=[{"role": "user", "content": incoming_msg}]
+        system="Tu es Mnemo, un assistant de mémoire personnelle. Tu aides à capturer, organiser et retrouver les pensées et idées. Réponds en français de manière concise.",
+        messages=[{"role": "user", "content": text}]
     )
-    
-    reply = response.content[0].text
-    await update.message.reply_text(reply)
+    return response.content[0].text
+
+def main():
+    offset = None
+    print("Mnemo bot started!")
+    while True:
+        updates = get_updates(offset)
+        for update in updates.get("result", []):
+            offset = update["update_id"] + 1
+            msg = update.get("message", {})
+            chat_id = msg.get("chat", {}).get("id")
+            text = msg.get("text", "")
+            if chat_id and text:
+                reply = ask_mnemo(text)
+                send_message(chat_id, reply)
 
 if __name__ == "__main__":
-    app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.run_polling()
+    main()
 
