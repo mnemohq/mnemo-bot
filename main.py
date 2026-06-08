@@ -20,7 +20,7 @@ def send_message(chat_id, text):
 
 def ask_mnemo(text):
     response = client.messages.create(
-        model="claude-haiku-4-5-20251001,
+        model="claude-haiku-4-5-20251001",
         max_tokens=1024,
         system="Tu es Mnemo, un assistant de mémoire personnelle. Tu aides à capturer, organiser et retrouver les pensées et idées. Réponds en français de manière concise.",
         messages=[{"role": "user", "content": text}]
