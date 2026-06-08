@@ -1,5 +1,4 @@
-flask
-twilio
 anthropic
-gunicorn
+python-telegram-bot
+
 
